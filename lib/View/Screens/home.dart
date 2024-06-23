@@ -1,17 +1,13 @@
-import 'dart:ui';
-
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:get/utils.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:project1/Controller/Validation.dart';
-
-import '../../Model/Api_method/Show_user_details.dart';
-import '../../Model/Common_widget/Common_Textfield.dart';
-import '../../Model/Lists/App_lists.dart';
+import 'package:project1/Model/Common_widget/Common_Textfield.dart';
+import 'package:project1/Model/Lists/App_lists.dart';
+import '../../Model/Common_widget/Common_dropdowns.dart';
 import 'chat_screen.dart';
 
 class SignUpPage extends StatefulWidget {
@@ -20,8 +16,13 @@ class SignUpPage extends StatefulWidget {
 }
 
 class _SignUpPageState extends State<SignUpPage> {
-  FocusNode textfiled = FocusNode();
-  Color Containercolor = Colors.red;
+  final FocusNode _fullNameFocusNode = FocusNode();
+  final FocusNode _phoneFocusNode = FocusNode();
+  final FocusNode _emailFocusNode = FocusNode();
+  final FocusNode _passwordFocusNode = FocusNode();
+  final FocusNode _addressFocusNode = FocusNode();
+  final FocusNode _postalCodeFocusNode = FocusNode();
+
   final _fullNameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
@@ -31,28 +32,77 @@ class _SignUpPageState extends State<SignUpPage> {
   final _postalCodeController = TextEditingController();
   DateTime? _selectedDate;
   bool eye = false;
-  List<TextEditingController> controller = [];
+  String _selectedGender = 'Male';
+  String? _countryError;
+  String? _stateError;
+  String? _cityError;
+  String? _phoneerror;
 
-  void initState() {
-    super.initState();
-    textfiled = FocusNode();
-    // Initialize the list with a specific number of controllers
-    textfiled.addListener(() {
-      setState(() {
-        Containercolor = textfiled.hasFocus ? Colors.green : Colors.red;
-      });
-    });
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null && picked != _selectedDate)
+          setState(() {
+            _selectedDate = picked;
+          });
   }
 
+  void _handleGenderChange(String? value) {
+    setState(() {
+      _selectedGender = value!;
+    });
+  }
+  void _validateAndSubmit() {
+    setState(() {
+      _countryError = null;
+      _stateError = null;
+      _cityError = null;
+      _phoneerror=null;
+    });
+
+    if (_formKey.currentState!.validate()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Processing Data')),
+      );
+      Get.to(
+        ChatPage(
+          user: _fullNameController.text,
+        ),
+      );
+    } else {
+      // Set errors for Dropdowns if not selected
+      setState(() {
+        _countryError = _countryError ?? 'Please select a country';
+        _stateError = _stateError ?? 'Please select a state';
+        _cityError = _cityError ?? 'Please select a city';
+      });
+    }
+  }
+
+  @override
   void dispose() {
-    // Dispose all the controllers to free up resources
-    textfiled.dispose();
+    _fullNameFocusNode.dispose();
+    _phoneFocusNode.dispose();
+    _emailFocusNode.dispose();
+    _passwordFocusNode.dispose();
+    _addressFocusNode.dispose();
+    _postalCodeFocusNode.dispose();
+
+    _fullNameController.dispose();
+    _phoneController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _addressController.dispose();
+    _dateController.dispose();
+    _postalCodeController.dispose();
     super.dispose();
   }
 
   final _formKey = GlobalKey<FormState>();
-
-  String _selectedGender = 'Prefer not to say';
 
   @override
   Widget build(BuildContext context) {
@@ -85,9 +135,9 @@ class _SignUpPageState extends State<SignUpPage> {
                 data: 'Full Name',
                 controller: _fullNameController,
                 hintText: 'Het Kansara',
-                focusNode: textfiled,
-                color: Containercolor,
+                focusNode: _fullNameFocusNode,
                 obscureText: false,
+                validator: Validator.validateFullname,
               ),
               SizedBox(height: 24),
               Text(
@@ -102,7 +152,7 @@ class _SignUpPageState extends State<SignUpPage> {
                 padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 3),
                 child: IntlPhoneField(
                   controller: _phoneController,
-                  focusNode: textfiled,
+                  focusNode: _phoneFocusNode,
                   decoration: InputDecoration(
                     enabledBorder: OutlineInputBorder(
                       borderSide: BorderSide(color: Colors.grey),
@@ -123,21 +173,21 @@ class _SignUpPageState extends State<SignUpPage> {
                 data: 'Email',
                 controller: _emailController,
                 hintText: 'hetk266@gmail.com',
-                focusNode: textfiled,
-                color: Containercolor,
+                focusNode: _emailFocusNode,
                 obscureText: false,
+                validator: Validator.validateEmail,
               ),
               SizedBox(height: 24),
               CommonTextField(
                 data: 'Password',
                 controller: _passwordController,
                 hintText: '1234567890',
-                focusNode: textfiled,
-                color: Containercolor,
+                focusNode: _passwordFocusNode,
                 obscureText: eye,
+                validator: Validator.validatePassword,
                 suffixIcon: IconButton(
                   icon:
-                      Icon(eye ? CupertinoIcons.eye : CupertinoIcons.eye_slash),
+                  Icon(eye ? CupertinoIcons.eye : CupertinoIcons.eye_slash),
                   onPressed: () {
                     setState(() {
                       eye = !eye;
@@ -147,133 +197,247 @@ class _SignUpPageState extends State<SignUpPage> {
                 keyboardType: TextInputType.number,
                 maxLength: 8,
               ),
+              Text('Address:',
+                  style: GoogleFonts.exo(
+                      textStyle: TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF438E96),
+                          fontWeight: FontWeight.w600))),
+              SizedBox(height: 4),
               CommonTextField(
-                data: 'Address',
                 controller: _addressController,
                 hintText: 'Address',
-                focusNode: textfiled,
-                color: Containercolor,
+                focusNode: _addressFocusNode,
                 obscureText: false,
+                data: '',
+                validator: Validator.ValidateAddress,
               ),
               SizedBox(height: 24),
-              DropdownButtonFormField<String>(
-                decoration: InputDecoration(
-                  labelText: 'Country',
-                  enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.grey),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.green),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                items: coutryList.map<DropdownMenuItem<String>>((String value) {
+              Text(
+                  'Country',
+                  style: GoogleFonts.exo(
+                      textStyle: TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF438E96),
+                          fontWeight: FontWeight.w600))
+              ),
+              SizedBox(height:6),
+              ComnDropdwn(
+                items:coutryList.map((String value) {
                   return DropdownMenuItem<String>(
                     value: value,
                     child: Text(value),
                   );
                 }).toList(),
                 onChanged: (_) {},
+                validator: (value) => value == null ? 'Please select a country' : null,
               ),
+              SizedBox(height: 5,),
+              if (_countryError != null)
+                Padding(
+                  padding: const EdgeInsets.only(left: 16, top: 8),
+                  child: Text(
+                    _countryError!,
+                    style: TextStyle(color: Colors.red, fontSize: 12),
+                  ),
+                ),
               SizedBox(height: 20),
-              DropdownButtonFormField<String>(
-                decoration: InputDecoration(
-                  labelText: 'State',
-                  enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.grey),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.green),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                items: [''].map((String value) {
+              Text(
+                  'State',
+                  style: GoogleFonts.exo(
+                      textStyle: TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF438E96),
+                          fontWeight: FontWeight.w600))
+              ),
+              SizedBox(height:6),
+              ComnDropdwn(
+                items:StateList.map((String value) {
                   return DropdownMenuItem<String>(
                     value: value,
                     child: Text(value),
                   );
                 }).toList(),
                 onChanged: (_) {},
+                validator: (value) => value == null ? 'Please select a state' : null,
               ),
+              SizedBox(height: 5),
+              if (_stateError != null)
+                Padding(
+                  padding: const EdgeInsets.only(left: 16, top: 8),
+                  child: Text(
+                    _stateError!,
+                    style: TextStyle(color: Colors.red, fontSize: 12),
+                  ),
+                ),
               SizedBox(height: 20),
-              DropdownButtonFormField<String>(
-                decoration: InputDecoration(
-                  labelText: 'City',
-                  enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.grey),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.green),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                items: [''].map((String value) {
+              Text(
+                  'City',
+                  style: GoogleFonts.exo(
+                      textStyle: TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF438E96),
+                          fontWeight: FontWeight.w600))
+              ),
+              SizedBox(height:6),
+              ComnDropdwn(
+                items:CityList.map((String value) {
                   return DropdownMenuItem<String>(
                     value: value,
                     child: Text(value),
                   );
                 }).toList(),
                 onChanged: (_) {},
+                validator: (value) => value == null ? 'Please select a city' : null,
               ),
+              SizedBox(height: 5,),
+              if (_cityError != null)
+                Padding(
+                  padding: const EdgeInsets.only(left: 16, top: 8),
+                  child: Text(
+                    _cityError!,
+                    style: TextStyle(color: Colors.red, fontSize: 12),
+                  ),
+                ),
               SizedBox(height: 20),
               CommonTextField(
                 data: 'Postal Code',
-                controller: _emailController,
+                controller: _postalCodeController,
                 hintText: '123456',
-                focusNode: textfiled,
-                color: Containercolor,
+                focusNode: _postalCodeFocusNode,
                 obscureText: false,
                 maxLength: 6,
+                validator: Validator.validatePostalCode,
               ),
-              GestureDetector(
-                onTap: () async {
-                  final DateTime? picked = await showDatePicker(
-                    context: context,
-                    initialDate: DateTime.now(),
-                    firstDate: DateTime(1900),
-                    lastDate: DateTime(2101),
-                  );
-                  if (picked != null && picked != _selectedDate)
-                    setState(() {
-                      _selectedDate = picked;
-                    });
-                },
-                child: InputDecorator(
-                  decoration: InputDecoration(
-                    labelText: 'My date of birth',
+              SizedBox(height: 20),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'My date of birth:',
+                  style: GoogleFonts.exo(
+                      textStyle: TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF438E96),
+                          fontWeight: FontWeight.w600))
+                ),
+                SizedBox(height: 6),
+                Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color:Color(0xFF438E96),
+                    ),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Text(
-                    _selectedDate == null
-                        ? 'Select date'
-                        : '${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}',
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _selectedDate != null
+                              ? '${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}'
+                              : 'Select',
+                          style:  GoogleFonts.exo(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xff3B757F),
+                  ),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () {
+                          _selectDate(context);
+                        },
+                        icon: Icon(Icons.calendar_today),
+                      ),
+                    ],
                   ),
                 ),
+              ],
+            ),
+              SizedBox(height: 20),
+              Text("Gender",style: GoogleFonts.exo(
+                  textStyle: TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF438E96),
+                      fontWeight: FontWeight.w600)),),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: <Widget>[
+                      Radio<String>(
+                       activeColor:Color(0xFF438E96),
+                        value: 'Mal',
+                        groupValue: _selectedGender,
+                        onChanged: _handleGenderChange,
+                      ),
+                      Text('Male',style: GoogleFonts.exo(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xff3B757F),
+                      ),),
+                    ],
+                  ),
+                  Row(
+                    children: <Widget>[
+                      Radio<String>(
+                        value: 'Female',
+                        activeColor: Color(0xFF438E96),
+                        groupValue: _selectedGender,
+                        onChanged: _handleGenderChange,
+                      ),
+                      Text('Female',style:GoogleFonts.exo(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xff3B757F),
+                      ),),
+                    ],
+                  ),
+                  Row(
+                    children: <Widget>[
+                      Radio<String>(
+                        value: 'Others',
+                        activeColor: Color(0xFF438E96),
+                        groupValue: _selectedGender,
+                        onChanged: _handleGenderChange,
+                      ),
+                      Text('Others',style: GoogleFonts.exo(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xff3B757F),
+                      ),),
+                    ],
+                  ),
+
+                ],
               ),
               SizedBox(height: 20),
               ElevatedButton(
-                onPressed: () async {
-                  final email = _emailController.text;
-                  final password = _passwordController.text;
-
-                  try {
-
-                    final data=await loginUser(email, password);
-                    // Navigate to another page or show success message
-                    Get.to(ChatPage(name:_emailController.text.data,),);
-                  } catch (e) {
-                    // Show error message
-                    print(e);
+                onPressed: () {
+                  print(_fullNameController.text);
+                  if (_formKey.currentState!.validate()) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Processing Data')),
+                    );
+                    Get.to(
+                      ChatPage(
+                        user: _fullNameController.text,
+                      ),
+                    );
                   }
-                  // if (_formKey.currentState!.validate()) {
-                  //   ScaffoldMessenger.of(context).showSnackBar(
-                  //     SnackBar(content: Text('Processing Data')),
-                  //   );
-                  // }
+                  else{
+                    Validator.validateEmail;
+                    Validator.validatePassword;
+                    Validator.validatePostalCode;
+                    Validator.validateFullname;
+                  }
                 },
-                child: Text('CREATE ACCOUNT'),
+                child: Text('CREATE ACCOUNT',style: GoogleFonts.openSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xff3B757F),
+                ),),
               ),
             ],
           ),

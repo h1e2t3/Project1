@@ -9,6 +9,22 @@ List<String> coutryList =[
   "Dubai",
   "New Zealand",
 ];
+List<String> StateList =[
+  "Gujarat",
+  "Maharashtra",
+  "Kerala",
+  "Utter Pradesh",
+  "Haryana",
+  "Uttarakhand",
+];
+List<String> CityList =[
+  "Surat",
+  "Vadodara",
+  "Ahmedabad",
+  "Anand",
+  "Jamnagar",
+  "Rajkot",
+];
 List<String>fieldName=[
   "Full Name",
   "Phone",

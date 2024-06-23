@@ -9,9 +9,9 @@ import 'package:get/get_core/src/get_main.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:project1/Model/Api_method/Show_user_details.dart';
 class ChatPage extends StatefulWidget {
-  final String? name;
+    final String user;
 
-  const ChatPage({super.key, this.name});
+   ChatPage({super.key, required this.user,});
   @override
   _ChatPageState createState() => _ChatPageState();
 }
@@ -57,7 +57,7 @@ class _ChatPageState extends State<ChatPage> {
                    ),),
                    Padding(
                      padding: const EdgeInsets.only(bottom:6),
-                     child: Text("Hi, ${loginUser("email", "password")}",style:  GoogleFonts.cherrySwash(
+                     child: Text("Hi,${widget.user}",style:  GoogleFonts.cherrySwash(
                        textStyle: TextStyle(
                          fontSize:19, fontWeight:FontWeight.w400,
                          color:Colors.white,
